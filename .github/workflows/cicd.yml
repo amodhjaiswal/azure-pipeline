@@ -50,6 +50,7 @@ jobs:
                 --name "${file#./}" \
                 --file "$file" \
                 --auth-mode login \
-                --only-show-errors
+                --only-show-errors \
+                --overwrite
             done
           EOF
