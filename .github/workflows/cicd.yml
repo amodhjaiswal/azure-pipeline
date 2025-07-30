@@ -1,0 +1,55 @@
+name: Upload Repo to Azure Blob via Jump Server
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  upload-to-blob:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Package repository
+        run: |
+          set -euxo pipefail
+          tar --exclude='.git' \
+              --exclude='.github' \
+              --exclude='node_modules' \
+              --ignore-failed-read \
+              -czf repo-root.tgz .
+
+      - name: Copy tarball to jump server
+        env:
+          PUBLIC_SERVER_PASSWORD: ${{ secrets.PUBLIC_SERVER_PASSWORD }}
+        run: |
+          sshpass -p "$PUBLIC_SERVER_PASSWORD" scp -o StrictHostKeyChecking=no repo-root.tgz amodh_vm_user@20.193.147.103:/tmp/repo-root.tgz
+
+      - name: Upload from jump server to Azure Blob Storage
+        env:
+          PUBLIC_SERVER_PASSWORD: ${{ secrets.PUBLIC_SERVER_PASSWORD }}
+        run: |
+          sshpass -p "$PUBLIC_SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no amodh_vm_user@20.193.147.103 <<'EOF'
+            set -euxo pipefail
+            mkdir -p ~/repo-upload && cd ~/repo-upload
+
+            # Extract the tarball
+            tar -xzf /tmp/repo-root.tgz -C .
+
+            # Login to Azure using Managed Identity
+            az login --identity
+
+            # Upload all files recursively to Blob Storage
+            for file in $(find . -type f); do
+              az storage blob upload \
+                --account-name amodhpocsg \
+                --container-name amodhpocsg-container \
+                --name "${file#./}" \
+                --file "$file" \
+                --auth-mode login \
+                --only-show-errors
+            done
+EOF
