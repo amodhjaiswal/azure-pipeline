@@ -32,7 +32,7 @@ jobs:
         env:
           PUBLIC_SERVER_PASSWORD: ${{ secrets.PUBLIC_SERVER_PASSWORD }}
         run: |
-          sshpass -p "$PUBLIC_SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no amodh_vm_user@20.193.147.103 << 'EOF'
+          sshpass -p "$PUBLIC_SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no amodh_vm_user@20.193.147.103 'bash -s' <<EOF
           set -euxo pipefail
           mkdir -p ~/repo-upload && cd ~/repo-upload
 
@@ -47,8 +47,8 @@ jobs:
             az storage blob upload \
               --account-name amodhpocsg \
               --container-name amodhpocsg-container \
-              --name "${file#./}" \
-              --file "$file" \
+              --name "\${file#./}" \
+              --file "\$file" \
               --auth-mode login \
               --only-show-errors
           done
