@@ -32,24 +32,24 @@ jobs:
         env:
           PUBLIC_SERVER_PASSWORD: ${{ secrets.PUBLIC_SERVER_PASSWORD }}
         run: |
-          sshpass -p "$PUBLIC_SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no amodh_vm_user@20.193.147.103 'bash -s' <<EOF
-          set -euxo pipefail
-          mkdir -p ~/repo-upload && cd ~/repo-upload
+          sshpass -p "$PUBLIC_SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no amodh_vm_user@20.193.147.103 'bash -s' << 'EOF'
+            set -euxo pipefail
+            mkdir -p ~/repo-upload && cd ~/repo-upload
 
-          # Extract tarball
-          tar -xzf /tmp/repo-root.tgz -C .
+            # Extract tarball
+            tar -xzf /tmp/repo-root.tgz -C .
 
-          # Login to Azure
-          az login --identity
+            # Login to Azure
+            az login --identity
 
-          # Upload all files to Azure Blob
-          find . -type f | while read file; do
-            az storage blob upload \
-              --account-name amodhpocsg \
-              --container-name amodhpocsg-container \
-              --name "\${file#./}" \
-              --file "\$file" \
-              --auth-mode login \
-              --only-show-errors
-          done
-EOF
+            # Upload all files to Azure Blob
+            find . -type f | while read -r file; do
+              az storage blob upload \
+                --account-name amodhpocsg \
+                --container-name amodhpocsg-container \
+                --name "${file#./}" \
+                --file "$file" \
+                --auth-mode login \
+                --only-show-errors
+            done
+          EOF
